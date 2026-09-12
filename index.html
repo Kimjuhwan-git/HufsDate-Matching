@@ -844,7 +844,7 @@
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(shareText)
                     .then(() => {
-                        showToast("검사 결과 링크가 클립보드에 복사되었습니다!");
+                        showToast("검사 결과가 클립보드에 복사되었습니다!");
                     })
                     .catch(() => {
                         // Permission denied or blocked — fall back to the legacy method
@@ -864,7 +864,7 @@
             document.execCommand('copy');
             document.body.removeChild(dummy);
 
-            showToast("검사결과가 클립보드에 복사되었습니다!");
+            showToast("검사 결과가 클립보드에 복사되었습니다!");
         }
 
         function showToast(msg) {
