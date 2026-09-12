@@ -116,7 +116,7 @@
                     나의 <span class="text-gradient">추구미</span> &amp; <span class="text-gradient-purple">이상형</span> 동물상 캐릭터 찾기
                 </h2>
                 <p class="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto mb-8 leading-relaxed">
-                    MBTI보다 솔직하고 재미있는 대학생 캠퍼스 밀착형 성향 분석!<br>
+                    MBTI보다 솔직하고 재미있는 대학생 캠퍼스  밀착형 성향 분석!<br>
                     나를 나타내는 동물 캐릭터와 내가 끌리는 이상형 캐릭터를 지금 바로 확인해보세요.
                 </p>
 
@@ -154,9 +154,15 @@
                 <div class="glass-card rounded-2xl p-6 sm:p-8">
                     <!-- Test Header & Progress -->
                     <div class="flex items-center justify-between mb-4">
-                        <button onclick="resetTest()" class="text-xs text-slate-400 hover:text-white transition-colors">
-                            <i class="fa-solid fa-xmark mr-1"></i> 처음으로
-                        </button>
+                        <div class="flex items-center space-x-2">
+                            <button id="prev-q-btn" onclick="prevQuestion()" class="text-xs text-slate-400 hover:text-white transition-colors disabled:opacity-30 disabled:pointer-events-none flex items-center">
+                                <i class="fa-solid fa-arrow-left mr-1"></i> 이전
+                            </button>
+                            <span class="text-slate-600">|</span>
+                            <button onclick="resetTest()" class="text-xs text-slate-400 hover:text-white transition-colors flex items-center">
+                                <i class="fa-solid fa-xmark mr-1"></i> 처음으로
+                            </button>
+                        </div>
                         <span id="test-category-badge" class="text-xs px-3 py-1 bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-full font-bold">
                             나의 추구미 검사
                         </span>
@@ -290,7 +296,7 @@
                             <tr>
                                 <td class="p-3 font-bold text-white whitespace-nowrap">🦊 여우상<br><span class="text-slate-400 font-normal">(도도 매력형)</span></td>
                                 <td class="p-3 text-slate-300">센스, 밀당, 자기관리, 쿨함</td>
-                                <td class="p-3 text-slate-300">구속받는 것 싫어하나 내 사람에겐 의외의 일지매 직진</td>
+                                <td class="p-3 text-slate-300">구속받는 것 싫어하나 내 사람에겐 의외의 일편단심 직진</td>
                                 <td class="p-3 text-slate-300">세련된 패션 감각과 티키타카 밀당 센스</td>
                             </tr>
                             <tr>
@@ -398,6 +404,7 @@
         let currentMode = 'self'; // 'self' or 'ideal'
         let currentQuestionIdx = 0;
         let scoreMap = { fox: 0, rabbit: 0, cat: 0, dog: 0, bear: 0, owl: 0 };
+        let historyStack = [];
 
         // 6 Animal Profiles Metadata
         const ANIMAL_PROFILES = {
@@ -473,7 +480,7 @@
         const SELF_QUESTIONS = [
             {
                 variable: "E / I (공강 활용 방식)",
-                question: "1. 시험기간 전, 2시간 정도 갑자기 공강이 생겼을 때 당신의 행동은?",
+                question: "1. 시험기간 중, 2시간 정도 갑자기 공강이 생겼을 때 당신의 행동은?",
                 choices: [
                     { text: "과방이나 동아리방 가서 친구들과 신나게 수다 떨며 기분 전환", tags: ['fox', 'rabbit'] },
                     { text: "중앙도서관 구석이나 조용한 카페에 가서 혼자 인강 보거나 쉼", tags: ['cat', 'owl'] },
@@ -487,7 +494,7 @@
                     { text: "최신 핫한 팝송이나 스타일리시한 R&B 플레이리스트", tags: ['fox'] },
                     { text: "신나는 최신 K-POP이나 몽글몽글한 인디 밴드 음악", tags: ['rabbit', 'dog'] },
                     { text: "가사가 없거나 몽환적인 Lo-Fi, 잔잔한 아쿠스틱/클래식", tags: ['cat', 'owl'] },
-                    { text: "편안한 가요나 들으면 마음이 느긋해지는 유재하 style 음악", tags: ['bear'] }
+                    { text: "편안한 가요나 들으면 마음이 느긋해지는 잔잔하고 따뜻한 분위기의 음악", tags: ['bear'] }
                 ]
             },
             {
@@ -525,7 +532,7 @@
                 question: "6. 전공 과목 4인 팀플 조장을 정할 때 당신의 스탠스는?",
                 choices: [
                     { text: "아무도 안 나서면 답답해서 내가 조장 맡고 빠르게 역할 분담시킴", tags: ['owl', 'fox'] },
-                    { text: "조장은 부담스럽지만, 피PPT 제작이나 자료조사 등 내 역할은 완벽히 해냄", tags: ['cat', 'bear'] },
+                    { text: "조장은 부담스럽지만, PPT 제작이나 자료조사 등 내 역할은 완벽히 해냄", tags: ['cat', 'bear'] },
                     { text: "조장님을 열렬히 응원하며 분위기 좋게 만들고 분위기메이커 자처", tags: ['rabbit', 'dog'] }
                 ]
             },
@@ -614,9 +621,9 @@
                 question: "5. 상대로부터 가장 '심쿵'을 느끼는 반전 매력 포인트는?",
                 choices: [
                     { text: "평소엔 도도해 보이는데 나한테만 몰래 웃어줄 때", tags: ['fox', 'cat'] },
-                    { text: "어수룩해 보이다가 자기 전공/일 할 때는 대단히 프로페셔널할 때", tags: ['owl'] },
+                    { text: "어수룩해 보이다가 자기 전공/일 할 때는 프로페셔널할 때", tags: ['owl'] },
                     { text: "강해 보이는데 동물이나 아이를 보면 어쩔 줄 몰라 귀여워할 때", tags: ['bear', 'dog'] },
-                    { text: "평소엔 순둥이인데 내가 힘들 때 단호하게 내 편 들어줄 때", tags: ['rabbit'] }
+                    { text: "평소엔 순둥이인데 내가 힘들 때 듬직하게 내 편이 되어줄 때", tags: ['rabbit'] }
                 ]
             },
             {
@@ -671,6 +678,7 @@
             currentMode = mode;
             currentQuestionIdx = 0;
             scoreMap = { fox: 0, rabbit: 0, cat: 0, dog: 0, bear: 0, owl: 0 };
+            historyStack = [];
 
             document.getElementById('app-intro').classList.add('hidden');
             document.getElementById('app-result-screen').classList.add('hidden');
@@ -691,6 +699,17 @@
         function renderQuestion() {
             const questions = currentMode === 'self' ? SELF_QUESTIONS : IDEAL_QUESTIONS;
             const qData = questions[currentQuestionIdx];
+
+            const prevBtn = document.getElementById('prev-q-btn');
+            if (prevBtn) {
+                if (currentQuestionIdx > 0) {
+                    prevBtn.removeAttribute('disabled');
+                    prevBtn.classList.remove('opacity-30', 'pointer-events-none');
+                } else {
+                    prevBtn.setAttribute('disabled', 'true');
+                    prevBtn.classList.add('opacity-30', 'pointer-events-none');
+                }
+            }
 
             // Update Progress
             document.getElementById('question-progress-text').innerText = `${currentQuestionIdx + 1} / ${questions.length}`;
@@ -719,6 +738,9 @@
         }
 
         function selectChoice(tags) {
+            // Push selection to history stack before updating scores
+            historyStack.push(tags);
+
             tags.forEach(tag => {
                 if (scoreMap[tag] !== undefined) {
                     scoreMap[tag] += 1;
@@ -732,6 +754,19 @@
                 renderQuestion();
             } else {
                 showResult();
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIdx > 0 && historyStack.length > 0) {
+                const lastTags = historyStack.pop();
+                lastTags.forEach(tag => {
+                    if (scoreMap[tag] !== undefined && scoreMap[tag] > 0) {
+                        scoreMap[tag] -= 1;
+                    }
+                });
+                currentQuestionIdx--;
+                renderQuestion();
             }
         }
 
@@ -790,9 +825,28 @@
         }
 
         function copyShareLink() {
+            const shareUrl = window.location.href;
+
+            // Preferred path: navigator.clipboard (requires a secure context — https or localhost)
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(shareUrl)
+                    .then(() => {
+                        showToast("검사 결과 링크가 클립보드에 복사되었습니다!");
+                    })
+                    .catch(() => {
+                        // Permission denied or blocked — fall back to the legacy method
+                        legacyCopyToClipboard(shareUrl);
+                    });
+            } else {
+                // Older browsers without Clipboard API support
+                legacyCopyToClipboard(shareUrl);
+            }
+        }
+
+        function legacyCopyToClipboard(text) {
             const dummy = document.createElement('input');
             document.body.appendChild(dummy);
-            dummy.value = window.location.href;
+            dummy.value = text;
             dummy.select();
             document.execCommand('copy');
             document.body.removeChild(dummy);
