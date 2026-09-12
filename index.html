@@ -398,6 +398,36 @@
         <span id="toast-text">결과 링크가 복사되었습니다!</span>
     </div>
 
+    <!-- Fallback Share Sheet (used when the native OS share sheet isn't available) -->
+    <div id="share-sheet-backdrop" class="hidden fixed inset-0 bg-black/60 z-[60] flex items-end sm:items-center justify-center" onclick="closeShareSheet(event)">
+        <div class="glass-card w-full sm:w-96 sm:rounded-2xl rounded-t-2xl p-6 border border-slate-700" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between mb-5">
+                <h4 class="font-bold text-white text-base">결과 공유하기</h4>
+                <button onclick="closeShareSheet()" class="text-slate-400 hover:text-white text-lg leading-none">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-4 gap-4 text-center">
+                <button onclick="shareVia('kakao')" class="flex flex-col items-center gap-2 group">
+                    <span class="w-12 h-12 rounded-full bg-[#FEE500] flex items-center justify-center text-xl group-active:scale-90 transition-transform">💬</span>
+                    <span class="text-[11px] text-slate-300">카카오톡</span>
+                </button>
+                <button onclick="shareVia('instagram')" class="flex flex-col items-center gap-2 group">
+                    <span class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 via-pink-500 to-amber-400 flex items-center justify-center text-xl group-active:scale-90 transition-transform"><i class="fa-brands fa-instagram text-white"></i></span>
+                    <span class="text-[11px] text-slate-300">인스타그램</span>
+                </button>
+                <button onclick="shareVia('sms')" class="flex flex-col items-center gap-2 group">
+                    <span class="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-xl group-active:scale-90 transition-transform"><i class="fa-solid fa-comment-sms text-white"></i></span>
+                    <span class="text-[11px] text-slate-300">메시지</span>
+                </button>
+                <button onclick="shareVia('copy')" class="flex flex-col items-center gap-2 group">
+                    <span class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-xl group-active:scale-90 transition-transform"><i class="fa-solid fa-link text-white"></i></span>
+                    <span class="text-[11px] text-slate-300">링크 복사</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript Execution Engine -->
     <script>
         // Current Test State
@@ -405,6 +435,7 @@
         let currentQuestionIdx = 0;
         let scoreMap = { fox: 0, rabbit: 0, cat: 0, dog: 0, bear: 0, owl: 0 };
         let historyStack = [];
+        let currentResultProfile = null; // holds the profile object for the latest result, used when sharing
 
         // 6 Animal Profiles Metadata
         const ANIMAL_PROFILES = {
@@ -785,6 +816,7 @@
             }
 
             const profile = ANIMAL_PROFILES[highestKey];
+            currentResultProfile = profile; // remember for sharing
 
             // Render Profile Data
             const emojiMap = { fox: '🦊', rabbit: '🐰', cat: '🐱', dog: '🐶', bear: '🐻', owl: '🦉' };
@@ -824,34 +856,88 @@
             document.getElementById('app-intro').classList.remove('hidden');
         }
 
-        function copyShareLink() {
-            const shareUrl = window.location.href;
+        // Build the share title/text/url for the current result
+        function buildShareData() {
+            const modeLabel = currentMode === 'self' ? '나의 추구미' : '이상형';
+            const profile = currentResultProfile;
+            const title = `[돌아온 외대팅] ${modeLabel} 캐릭터 검사 결과`;
+            const text = profile
+                ? `나의 ${modeLabel} 결과는 "${profile.name} (${profile.badge})"! ${profile.modifier}\n너도 검사해봐 👇`
+                : `돌아온 외대팅 캐릭터 검사를 해봤어! 너도 검사해봐 👇`;
+            return { title, text, url: window.location.href };
+        }
 
-            // Preferred path: navigator.clipboard (requires a secure context — https or localhost)
+        // Main share entry point: tries the native OS share sheet first (KakaoTalk, Instagram, Messages, etc.),
+        // and falls back to an in-page share sheet on browsers/environments that don't support it.
+        async function copyShareLink() {
+            const shareData = buildShareData();
+
+            if (navigator.share) {
+                try {
+                    await navigator.share(shareData);
+                    return; // user completed a native share — nothing else to do
+                } catch (err) {
+                    if (err && err.name === 'AbortError') {
+                        return; // user cancelled the native share sheet, don't show a fallback
+                    }
+                    // any other error (e.g. share blocked in this environment) — fall through to fallback sheet
+                }
+            }
+
+            openShareSheet();
+        }
+
+        function openShareSheet() {
+            document.getElementById('share-sheet-backdrop').classList.remove('hidden');
+        }
+
+        function closeShareSheet(evt) {
+            document.getElementById('share-sheet-backdrop').classList.add('hidden');
+        }
+
+        function shareVia(channel) {
+            const { title, text, url } = buildShareData();
+            const fullText = `${text}\n${url}`;
+
+            switch (channel) {
+                case 'kakao':
+                    // Without the KakaoTalk JS SDK + app key registered for this domain, the closest
+                    // universal option is opening KakaoTalk's own share-to-friend web flow with the link.
+                    window.open(`https://sharer.kakao.com/talk/friends/picker/link?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`, '_blank');
+                    break;
+                case 'instagram':
+                    // Instagram has no public web share endpoint, so copy the message and hand off to the app/DM.
+                    copyTextToClipboard(fullText);
+                    showToast('메시지가 복사되었습니다! 인스타그램 DM에 붙여넣어 공유해보세요 📸');
+                    break;
+                case 'sms':
+                    window.location.href = `sms:?&body=${encodeURIComponent(fullText)}`;
+                    break;
+                case 'copy':
+                default:
+                    copyTextToClipboard(fullText);
+                    showToast('검사 결과 링크가 클립보드에 복사되었습니다!');
+                    break;
+            }
+
+            closeShareSheet();
+        }
+
+        function copyTextToClipboard(text) {
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(shareUrl)
-                    .then(() => {
-                        showToast("검사 결과 링크가 클립보드에 복사되었습니다!");
-                    })
-                    .catch(() => {
-                        // Permission denied or blocked — fall back to the legacy method
-                        legacyCopyToClipboard(shareUrl);
-                    });
+                navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
             } else {
-                // Older browsers without Clipboard API support
-                legacyCopyToClipboard(shareUrl);
+                legacyCopy(text);
             }
         }
 
-        function legacyCopyToClipboard(text) {
-            const dummy = document.createElement('input');
+        function legacyCopy(text) {
+            const dummy = document.createElement('textarea');
             document.body.appendChild(dummy);
             dummy.value = text;
             dummy.select();
             document.execCommand('copy');
             document.body.removeChild(dummy);
-
-            showToast("검사 결과 링크가 클립보드에 복사되었습니다!");
         }
 
         function showToast(msg) {
